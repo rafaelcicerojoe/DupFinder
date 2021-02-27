@@ -11,10 +11,10 @@ class DuplicateFinder:
     dict_by_size = {}
     dict_by_hash = {}
     errors = []
-    log = {'unique_files_by_size_log': {"Qtd": 0, 'Files': []},
-           'unique_files_by_hash_log': {"Qtd": 0, 'Files': []},
-           'duplicates_log': {"Qtd": 0, 'Files': []},
-           'empty_folders_log': {"Qtd": 0, 'Files': []},
+    log = {'duplicates_by_size': {"Qtd": 0, 'Files': []},
+           'duplicates_by_hash': {"Qtd": 0, 'Files': []},
+           'deleted_files': {"Qtd": 0, 'Files': []},
+           'deleted_empty_folders': {"Qtd": 0, 'Files': []},
            'errors': {"Qtd": 0, 'Files': []}}
 
     def __init__(self, directory, log_directory, hash_algorithm, to_trash, deletion_mode):
@@ -72,140 +72,160 @@ class DuplicateFinder:
         return hash_algorithm.hexdigest()
 
     def find_duplicate_by_size(self):
-        total = []
-        for path, dirs, files in walk(self._directory):
-            for file in files:
-                try:
-                    file_name = file
-                    file_path = path
-                    file_full_path = join(path, file)
-                    file_size = getsize(file_full_path)
-                    file_time = datetime.fromtimestamp(stat(file_full_path).st_mtime)
-                    file_obj = File(file_name, file_path, file_full_path, file_size, file_time)
-                    total.append(file_obj)
-                    if file_size not in self.dict_by_size:
-                        self.dict_by_size[file_size] = [file_obj]
-                    else:
-                        self.dict_by_size[file_size].append(file_obj)
-                except Exception as e:
-                    print(e)
+        try:
+            total = []
+            for path, dirs, files in walk(self._directory):
+                for file in files:
+                    try:
+                        file_name = file
+                        file_path = path
+                        file_full_path = join(path, file)
+                        file_size = getsize(file_full_path)
+                        file_time = datetime.fromtimestamp(stat(file_full_path).st_mtime)
+                        file_obj = File(file_name, file_path, file_full_path, file_size, file_time)
+                        total.append(file_obj)
+                        if file_size not in self.dict_by_size:
+                            self.dict_by_size[file_size] = [file_obj]
+                        else:
+                            self.dict_by_size[file_size].append(file_obj)
+                    except Exception as e:
+                        self.log['errors']['Files'].append(e)
+                        continue
 
-        unique_file_per_size = []
-        for i in self.dict_by_size:
-            if len(self.dict_by_size[i]) < 2:
-                unique_file_per_size.append(i)
-        for i in unique_file_per_size:
-            self.log['unique_files_by_size_log']['Files'].append(str(self.dict_by_size[i]))
-            del (self.dict_by_size[i])
+            unique_file_per_size = []
+            for i in self.dict_by_size:
+                if len(self.dict_by_size[i]) < 2:
+                    unique_file_per_size.append(i)
+            for i in unique_file_per_size:
+                del (self.dict_by_size[i])
 
-        self.log['unique_files_by_size_log']['Qtd'] = len(unique_file_per_size)
+            for key, obj_list in self.dict_by_size.items():
+                for obj in obj_list:
+                    self.log['duplicates_by_size']['Files'].append(str(obj))
+
+            self.log['duplicates_by_size']['Qtd'] = len(self.log['duplicates_by_size']['Files'])
+        except Exception as e:
+            self.log['errors']['Files'].append(e)
+            print(e)
 
     def find_duplicate_by_full_hash(self):
-        for key, obj_list in self.dict_by_size.items():
-            for obj in obj_list:
-                hash_id = self.get_hash(obj.full_path)
-                obj.hash_id = hash_id
-                if hash_id not in self.dict_by_hash:
-                    self.dict_by_hash[hash_id] = [obj]
-                else:
-                    self.dict_by_hash[hash_id].append(obj)
+        try:
+            for key, obj_list in self.dict_by_size.items():
+                for obj in obj_list:
+                    hash_id = self.get_hash(obj.full_path)
+                    obj.hash_id = hash_id
+                    if hash_id not in self.dict_by_hash:
+                        self.dict_by_hash[hash_id] = [obj]
+                    else:
+                        self.dict_by_hash[hash_id].append(obj)
 
-        unique_file_per_hash = []
-        for i in self.dict_by_hash:
-            if len(self.dict_by_hash[i]) < 2:
-                unique_file_per_hash.append(i)
-        for i in unique_file_per_hash:
-            self.log['unique_files_by_hash_log']['Files'].append(str(self.dict_by_hash[i]))
-            del (self.dict_by_hash[i])
+            unique_file_per_hash = []
+            for i in self.dict_by_hash:
+                if len(self.dict_by_hash[i]) < 2:
+                    unique_file_per_hash.append(i)
+            for i in unique_file_per_hash:
+                del (self.dict_by_hash[i])
 
-        self.log['unique_files_by_hash_log']['Qtd'] = len(unique_file_per_hash)
+            for key, obj_list in self.dict_by_hash.items():
+                for obj in obj_list:
+                    self.log['duplicates_by_hash']['Files'].append(str(obj))
+
+            self.log['duplicates_by_hash']['Qtd'] = len(self.log['duplicates_by_hash']['Files'])
+        except Exception as e:
+            self.log['errors']['Files'].append(e)
+            print(e)
 
     def send_duplicate_to_trash(self):
-        duplicates = []
-        for key, obj_list in self.dict_by_hash.items():
-            if self._deletion_mode == 1:
-                original = obj_list[0]
-                for obj in obj_list:
-                    if len(obj.name) < len(original.name):
-                        original = obj
-                obj_list.remove(original)
-                for obj in obj_list:
-                    duplicates.append(obj.full_path)
-                    self.log['duplicates_log']['Files'].append(str(obj))
-            elif self._deletion_mode == 2:
-                original = obj_list[0]
-                for obj in obj_list:
-                    if obj.time > original.time:
-                        original = obj
-                obj_list.remove(original)
-                for obj in obj_list:
-                    duplicates.append(obj.full_path)
-                    self.log['duplicates_log']['Files'].append(str(obj))
-            elif self._deletion_mode == 3:
-                longest_path_list = []
-                longest_path = obj_list[0].path
-                for obj in obj_list:
-                    if len(obj.path) > len(longest_path):
-                        longest_path = obj.path
-                for obj in obj_list:
-                    if obj.path == longest_path:
-                        longest_path_list.append(obj)
-
-                print("longest_path_list", longest_path_list)
-
-                if len(longest_path_list) > 1:
-                    original = longest_path_list[0]
-                    for obj in longest_path_list:
+        try:
+            duplicates = []
+            for key, obj_list in self.dict_by_hash.items():
+                if self._deletion_mode == 1:
+                    original = obj_list[0]
+                    for obj in obj_list:
                         if len(obj.name) < len(original.name):
                             original = obj
-                    print("\n")
-                    print("original", original)
                     obj_list.remove(original)
-                else:
-                    original = longest_path_list[0]
+                    for obj in obj_list:
+                        duplicates.append(obj.full_path)
+                        self.log['deleted_files']['Files'].append(str(obj))
+                elif self._deletion_mode == 2:
+                    original = obj_list[0]
+                    for obj in obj_list:
+                        if obj.time > original.time:
+                            original = obj
                     obj_list.remove(original)
-                for obj in obj_list:
-                    duplicates.append(obj.full_path)
-                    self.log['duplicates_log']['Files'].append(str(obj))
-        self.log['duplicates_log']['Qtd'] = len(duplicates)
+                    for obj in obj_list:
+                        duplicates.append(obj.full_path)
+                        self.log['deleted_files']['Files'].append(str(obj))
+                elif self._deletion_mode == 3:
+                    longest_path_list = []
+                    longest_path = obj_list[0].path
+                    for obj in obj_list:
+                        if len(obj.path) > len(longest_path):
+                            longest_path = obj.path
+                    for obj in obj_list:
+                        if obj.path == longest_path:
+                            longest_path_list.append(obj)
+                    if len(longest_path_list) > 1:
+                        original = longest_path_list[0]
+                        for obj in longest_path_list:
+                            if len(obj.name) < len(original.name):
+                                original = obj
+                        obj_list.remove(original)
+                    else:
+                        original = longest_path_list[0]
+                        obj_list.remove(original)
+                    for obj in obj_list:
+                        duplicates.append(obj.full_path)
+                        self.log['deleted_files']['Files'].append(str(obj))
 
-        for i in duplicates:
-            try:
-                if self._to_trash == 0:
-                    remove(i)
-                else:
-                    send2trash(i)
+            self.log['deleted_files']['Qtd'] = len(duplicates)
 
-            except Exception as e:
-                self.log['errors']['Files'].append(e)
-                continue
+            for i in duplicates:
+                try:
+                    if self._to_trash == 0:
+                        remove(i)
+                    else:
+                        send2trash(i)
 
-        self.log['errors']['Qtd'] = len(self.log['errors']['Files'])
+                except Exception as e:
+                    self.log['errors']['Files'].append(e)
+                    continue
+        except Exception as e:
+            self.log['errors']['Files'].append(e)
+            print(e)
 
     def remove_empty_folder(self):
-        empty_folders = []
-        for path, dirs, files in walk(self._directory):
-            if not dirs and not files:
-                empty_folders.append(path)
-                self.log['empty_folders_log']['Files'].append(path)
-        self.log['empty_folders_log']['Qtd'] = len(empty_folders)
+        try:
+            empty_folders = []
+            for path, dirs, files in walk(self._directory):
+                if not dirs and not files:
+                    empty_folders.append(path)
+                    self.log['deleted_empty_folders']['Files'].append(path)
+            self.log['deleted_empty_folders']['Qtd'] = len(empty_folders)
 
-        for i in empty_folders:
-            try:
-                if self._to_trash == 0:
-                    rmdir(i)
-                else:
-                    send2trash(i)
-            except Exception as e:
-                self.log['errors']['Files'].append(e)
-                continue
-
-        self.log['errors']['Qtd'] = len(self.log['errors']['Files'])
+            for i in empty_folders:
+                try:
+                    if self._to_trash == 0:
+                        rmdir(i)
+                    else:
+                        send2trash(i)
+                except Exception as e:
+                    self.log['errors']['Files'].append(e)
+                    continue
+        except Exception as e:
+            self.log['errors']['Files'].append(e)
+            print(e)
 
     def export_log(self):
-        out_file = open(self._log_directory + "log.json", "w")
-        json.dump(self.log, out_file, indent=6)
-        out_file.close()
+        try:
+            self.log['errors']['Qtd'] = len(self.log['errors']['Files'])
+            out_file = open(self._log_directory + "log.json", "w")
+            json.dump(self.log, out_file, indent=6)
+            out_file.close()
 
-        for i in self.log:
-            print("{}: {}".format(i, self.log[i]['Qtd']))
+            for i in self.log:
+                print("{}: {}".format(i, self.log[i]['Qtd']))
+        except Exception as e:
+            self.log['errors']['Files'].append(e)
+            print(e)
