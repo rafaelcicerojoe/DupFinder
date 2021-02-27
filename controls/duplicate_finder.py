@@ -13,7 +13,8 @@ class DuplicateFinder:
     log = {'unique_files_by_size_log': {"Qtd": 0, 'Files': []},
            'unique_files_by_hash_log': {"Qtd": 0, 'Files': []},
            'duplicates_log': {"Qtd": 0, 'Files': []},
-           'empty_folders_log': {"Qtd": 0, 'Files': []}}
+           'empty_folders_log': {"Qtd": 0, 'Files': []},
+           'errors': {"Qtd": 0, 'Files': []}}
 
     def __init__(self, directory, log_directory, hash_algorithm, to_trash, deletion_mode):
         self._directory = directory
@@ -140,9 +141,10 @@ class DuplicateFinder:
                     send2trash(i)
 
             except Exception as e:
-                print(e)
+                self.log['errors']['Files'].append(e)
                 continue
 
+        self.log['errors']['Qtd'] = len(self.log['errors']['Files'])
 
     def remove_empty_folder(self):
         empty_folders = []
@@ -159,8 +161,10 @@ class DuplicateFinder:
                 else:
                     send2trash(i)
             except Exception as e:
+                self.log['errors']['Files'].append(e)
                 continue
 
+        self.log['errors']['Qtd'] = len(self.log['errors']['Files'])
 
     def export_log(self):
         out_file = open(self._log_directory + "log.json", "w")
