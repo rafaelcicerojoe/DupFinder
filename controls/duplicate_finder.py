@@ -1,6 +1,6 @@
 import json
 import hashlib
-from os import walk, stat
+from os import walk, stat, remove, rmdir
 from os.path import join, getsize
 from send2trash import send2trash
 from datetime import datetime
@@ -10,10 +10,12 @@ from controls.file import File
 class DuplicateFinder:
     dict_by_size = {}
     dict_by_hash = {}
+    errors = []
     log = {'unique_files_by_size_log': {"Qtd": 0, 'Files': []},
            'unique_files_by_hash_log': {"Qtd": 0, 'Files': []},
            'duplicates_log': {"Qtd": 0, 'Files': []},
-           'empty_folders_log': {"Qtd": 0, 'Files': []}}
+           'empty_folders_log': {"Qtd": 0, 'Files': []},
+           'errors': {"Qtd": 0, 'Files': []}}
 
     def __init__(self, directory, log_directory, hash_algorithm, to_trash, deletion_mode):
         self._directory = directory
@@ -169,10 +171,16 @@ class DuplicateFinder:
 
         for i in duplicates:
             try:
-                send2trash(i)
+                if self._to_trash == 0:
+                    remove(i)
+                else:
+                    send2trash(i)
+
             except Exception as e:
-                print(e)
+                self.log['errors']['Files'].append(e)
                 continue
+
+        self.log['errors']['Qtd'] = len(self.log['errors']['Files'])
 
     def remove_empty_folder(self):
         empty_folders = []
@@ -181,8 +189,18 @@ class DuplicateFinder:
                 empty_folders.append(path)
                 self.log['empty_folders_log']['Files'].append(path)
         self.log['empty_folders_log']['Qtd'] = len(empty_folders)
+
         for i in empty_folders:
-            send2trash(i)
+            try:
+                if self._to_trash == 0:
+                    rmdir(i)
+                else:
+                    send2trash(i)
+            except Exception as e:
+                self.log['errors']['Files'].append(e)
+                continue
+
+        self.log['errors']['Qtd'] = len(self.log['errors']['Files'])
 
     def export_log(self):
         out_file = open(self._log_directory + "log.json", "w")
