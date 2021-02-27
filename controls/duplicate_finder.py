@@ -3,6 +3,7 @@ import hashlib
 from os import walk, stat
 from os.path import join, getsize
 from send2trash import send2trash
+from datetime import datetime
 from controls.file import File
 
 
@@ -77,7 +78,7 @@ class DuplicateFinder:
                     file_path = path
                     file_full_path = join(path, file)
                     file_size = getsize(file_full_path)
-                    file_time = stat(file_full_path).st_mtime
+                    file_time = datetime.fromtimestamp(stat(file_full_path).st_mtime)
                     file_obj = File(file_name, file_path, file_full_path, file_size, file_time)
                     total.append(file_obj)
                     if file_size not in self.dict_by_size:
@@ -120,15 +121,50 @@ class DuplicateFinder:
     def send_duplicate_to_trash(self):
         duplicates = []
         for key, obj_list in self.dict_by_hash.items():
-            original = obj_list[0]
-            for obj in obj_list:
-                if len(obj.name) < len(original.name):
-                    original = obj
-            obj_list.remove(original)
-            for obj in obj_list:
-                duplicates.append(obj.full_path)
-                self.log['duplicates_log']['Files'].append(str(obj))
+            if self._deletion_mode == 1:
+                original = obj_list[0]
+                for obj in obj_list:
+                    if len(obj.name) < len(original.name):
+                        original = obj
+                obj_list.remove(original)
+                for obj in obj_list:
+                    duplicates.append(obj.full_path)
+                    self.log['duplicates_log']['Files'].append(str(obj))
+            elif self._deletion_mode == 2:
+                original = obj_list[0]
+                for obj in obj_list:
+                    if obj.time > original.time:
+                        original = obj
+                obj_list.remove(original)
+                for obj in obj_list:
+                    duplicates.append(obj.full_path)
+                    self.log['duplicates_log']['Files'].append(str(obj))
+            elif self._deletion_mode == 3:
+                longest_path_list = []
+                longest_path = obj_list[0].path
+                for obj in obj_list:
+                    if len(obj.path) > len(longest_path):
+                        longest_path = obj.path
+                for obj in obj_list:
+                    if obj.path == longest_path:
+                        longest_path_list.append(obj)
 
+                print("longest_path_list", longest_path_list)
+
+                if len(longest_path_list) > 1:
+                    original = longest_path_list[0]
+                    for obj in longest_path_list:
+                        if len(obj.name) < len(original.name):
+                            original = obj
+                    print("\n")
+                    print("original", original)
+                    obj_list.remove(original)
+                else:
+                    original = longest_path_list[0]
+                    obj_list.remove(original)
+                for obj in obj_list:
+                    duplicates.append(obj.full_path)
+                    self.log['duplicates_log']['Files'].append(str(obj))
         self.log['duplicates_log']['Qtd'] = len(duplicates)
 
         for i in duplicates:
