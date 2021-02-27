@@ -2,6 +2,6 @@
     "directory": "/home/fernando/duplicator/",
     "log_directory": "log/",
     "hash_algorithm": "sha512",
-    "to_trash": 1,
+    "to_trash": 0,
     "deletion_mode" : 1
 }
