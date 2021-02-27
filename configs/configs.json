@@ -1,0 +1,7 @@
+{
+    "directory": "/home/fernando/duplicator/",
+    "log_directory": "log/",
+    "hash_algorithm": "sha512",
+    "to_trash": 1,
+    "deletion_mode" : 1
+}

@@ -1,9 +1,9 @@
+import json
 import hashlib
 from os import walk, stat
 from os.path import join, getsize
 from send2trash import send2trash
-import json
-from file import File
+from controls.file import File
 
 
 class DuplicateFinder:
@@ -14,9 +14,12 @@ class DuplicateFinder:
            'duplicates_log': {"Qtd": 0, 'Files': []},
            'empty_folders_log': {"Qtd": 0, 'Files': []}}
 
-    def __init__(self, directory):
-        self._hash_algorithm = hashlib.sha512()
+    def __init__(self, directory, log_directory, hash_algorithm, to_trash, deletion_mode):
         self._directory = directory
+        self._log_directory = log_directory
+        self._hash_algorithm = hash_algorithm
+        self._to_trash = to_trash
+        self._deletion_mode = deletion_mode
 
     @property
     def directory(self):
@@ -27,19 +30,43 @@ class DuplicateFinder:
         self._directory = value
 
     @property
+    def log_directory(self):
+        return self._log_directory
+
+    @log_directory.setter
+    def log_directory(self, value):
+        self._log_directory = value
+    
+    @property
     def hash_algorithm(self):
         return self._hash_algorithm
-
+    
     @hash_algorithm.setter
     def hash_algorithm(self, value):
         self._hash_algorithm = value
 
+    @property
+    def to_trash(self):
+        return self._to_trash
+
+    @to_trash.setter
+    def to_trash(self, value):
+        self._to_trash = value
+
+    @property
+    def deletion_mode(self):
+        return self._deletion_mode
+
+    @deletion_mode.setter
+    def deletion_mode(self, value):
+        self._deletion_mode = value
+
     def get_hash(self, file_path):
-        self._hash_algorithm = hashlib.sha512()
+        hash_algorithm = hashlib.new(self._hash_algorithm)
         with open(file_path, "rb") as f:
             file = f.read()
-            self._hash_algorithm.update(file)
-        return self._hash_algorithm.hexdigest()
+            hash_algorithm.update(file)
+        return hash_algorithm.hexdigest()
 
     def find_duplicate_by_size(self):
         total = []
@@ -69,8 +96,6 @@ class DuplicateFinder:
             del (self.dict_by_size[i])
 
         self.log['unique_files_by_size_log']['Qtd'] = len(unique_file_per_size)
-        print("Qtd. Unique File Size:{}".format(len(unique_file_per_size)))
-        print("Qtd. Size Dict:{}".format(len(self.dict_by_size)))
 
     def find_duplicate_by_full_hash(self):
         for key, obj_list in self.dict_by_size.items():
@@ -91,8 +116,6 @@ class DuplicateFinder:
             del (self.dict_by_hash[i])
 
         self.log['unique_files_by_hash_log']['Qtd'] = len(unique_file_per_hash)
-        print("Qtd. Unique File Hash:{}".format(len(unique_file_per_hash)))
-        print("Qtd. Hash Dict:{}".format(len(self.dict_by_hash)))
 
     def send_duplicate_to_trash(self):
         duplicates = []
@@ -107,7 +130,6 @@ class DuplicateFinder:
                 self.log['duplicates_log']['Files'].append(str(obj))
 
         self.log['duplicates_log']['Qtd'] = len(duplicates)
-        print("Qtd. Duplicates:{}".format(len(duplicates)))
 
         for i in duplicates:
             try:
@@ -127,6 +149,9 @@ class DuplicateFinder:
             send2trash(i)
 
     def export_log(self):
-        out_file = open("log.json", "w")
+        out_file = open(self._log_directory + "log.json", "w")
         json.dump(self.log, out_file, indent=6)
         out_file.close()
+
+        for i in self.log:
+            print("{}: {}".format(i, self.log[i]['Qtd']))
