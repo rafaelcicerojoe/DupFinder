@@ -22,7 +22,7 @@ class DupFinder(SMWinservice):
         self.is_running = False
 
     def main(self):
-        with open('C:\\Users\\FERNANDO\\Downloads\\DupFinder\\configs\\configs.json') as i:
+        with open('C:\\GitHub\\DupFinder\\configs\\configs.json') as i:
             _config = json.load(i)
 
         dup_finder = DuplicateFinder(_config['directory'], _config['log_directory'], _config['hash_algorithm'],

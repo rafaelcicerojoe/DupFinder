@@ -1,6 +1,6 @@
 {
-    "directory": "C:\\Users\\FERNANDO\\Downloads\\duplicator",
-    "log_directory": "C:\\Users\\FERNANDO\\Downloads\\DupFinder\\log\\",
+    "directory": "C:\\Users\\FERNANDO\\Downloads",
+    "log_directory": "C:\\GitHub\\DupFinder\\log\\",
     "hash_algorithm": "sha512",
     "to_trash": 1,
     "deletion_mode" : 3
