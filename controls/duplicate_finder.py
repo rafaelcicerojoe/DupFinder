@@ -89,7 +89,7 @@ class DuplicateFinder:
                         else:
                             self.dict_by_size[file_size].append(file_obj)
                     except Exception as e:
-                        self.log['errors']['Files'].append(e)
+                        self.log['errors']['Files'].append(str(e))
                         continue
 
             unique_file_per_size = []
@@ -105,7 +105,7 @@ class DuplicateFinder:
 
             self.log['duplicates_by_size']['Qtd'] = len(self.log['duplicates_by_size']['Files'])
         except Exception as e:
-            self.log['errors']['Files'].append(e)
+            self.log['errors']['Files'].append(str(e))
             print(e)
 
     def find_duplicate_by_full_hash(self):
@@ -132,7 +132,7 @@ class DuplicateFinder:
 
             self.log['duplicates_by_hash']['Qtd'] = len(self.log['duplicates_by_hash']['Files'])
         except Exception as e:
-            self.log['errors']['Files'].append(e)
+            self.log['errors']['Files'].append(str(e))
             print(e)
 
     def send_duplicate_to_trash(self):
@@ -189,10 +189,10 @@ class DuplicateFinder:
                         send2trash(i)
 
                 except Exception as e:
-                    self.log['errors']['Files'].append(e)
+                    self.log['errors']['Files'].append(str(e))
                     continue
         except Exception as e:
-            self.log['errors']['Files'].append(e)
+            self.log['errors']['Files'].append(str(e))
             print(e)
 
     def remove_empty_folder(self):
@@ -212,9 +212,10 @@ class DuplicateFinder:
                         send2trash(i)
                 except Exception as e:
                     self.log['errors']['Files'].append(e)
+                    self.log['errors']['Files'].append(str(e))
                     continue
         except Exception as e:
-            self.log['errors']['Files'].append(e)
+            self.log['errors']['Files'].append(str(e))
             print(e)
 
     def export_log(self):
@@ -227,5 +228,5 @@ class DuplicateFinder:
             for i in self.log:
                 print("{}: {}".format(i, self.log[i]['Qtd']))
         except Exception as e:
-            self.log['errors']['Files'].append(e)
+            self.log['errors']['Files'].append(str(e))
             print(e)
