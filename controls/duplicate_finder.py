@@ -8,14 +8,13 @@ from controls.file import File
 
 
 class DuplicateFinder:
-    dict_by_size = {}
-    dict_by_hash = {}
     errors = []
     log = {'duplicates_by_size': {"Qtd": 0, 'Files': []},
            'duplicates_by_hash': {"Qtd": 0, 'Files': []},
            'deleted_files': {"Qtd": 0, 'Files': []},
            'deleted_empty_folders': {"Qtd": 0, 'Files': []},
-           'errors': {"Qtd": 0, 'Files': []}}
+           'errors': {"Qtd": 0, 'Files': []}
+           }
 
     def __init__(self, directory, log_directory, hash_algorithm, to_trash, deletion_mode):
         self._directory = directory
@@ -74,6 +73,7 @@ class DuplicateFinder:
     def find_duplicate_by_size(self):
         try:
             total = []
+            dict_by_size = {}
             for path, dirs, files in walk(self._directory):
                 for file in files:
                     try:
@@ -84,61 +84,64 @@ class DuplicateFinder:
                         file_time = datetime.fromtimestamp(stat(file_full_path).st_mtime)
                         file_obj = File(file_name, file_path, file_full_path, file_size, file_time)
                         total.append(file_obj)
-                        if file_size not in self.dict_by_size:
-                            self.dict_by_size[file_size] = [file_obj]
+                        if file_size not in dict_by_size:
+                            dict_by_size[file_size] = [file_obj]
                         else:
-                            self.dict_by_size[file_size].append(file_obj)
+                            dict_by_size[file_size].append(file_obj)
                     except Exception as e:
                         self.log['errors']['Files'].append(str(e))
                         continue
 
             unique_file_per_size = []
-            for i in self.dict_by_size:
-                if len(self.dict_by_size[i]) < 2:
+            for i in dict_by_size:
+                if len(dict_by_size[i]) < 2:
                     unique_file_per_size.append(i)
             for i in unique_file_per_size:
-                del (self.dict_by_size[i])
+                del (dict_by_size[i])
 
-            for key, obj_list in self.dict_by_size.items():
+            for key, obj_list in dict_by_size.items():
                 for obj in obj_list:
                     self.log['duplicates_by_size']['Files'].append(str(obj))
 
             self.log['duplicates_by_size']['Qtd'] = len(self.log['duplicates_by_size']['Files'])
+            return dict_by_size
         except Exception as e:
             self.log['errors']['Files'].append(str(e))
             print(e)
 
-    def find_duplicate_by_full_hash(self):
+    def find_duplicate_by_full_hash(self, dict_by_size):
         try:
-            for key, obj_list in self.dict_by_size.items():
+            dict_by_hash = {}
+            for key, obj_list in dict_by_size.items():
                 for obj in obj_list:
                     hash_id = self.get_hash(obj.full_path)
                     obj.hash_id = hash_id
-                    if hash_id not in self.dict_by_hash:
-                        self.dict_by_hash[hash_id] = [obj]
+                    if hash_id not in dict_by_hash:
+                        dict_by_hash[hash_id] = [obj]
                     else:
-                        self.dict_by_hash[hash_id].append(obj)
+                        dict_by_hash[hash_id].append(obj)
 
             unique_file_per_hash = []
-            for i in self.dict_by_hash:
-                if len(self.dict_by_hash[i]) < 2:
+            for i in dict_by_hash:
+                if len(dict_by_hash[i]) < 2:
                     unique_file_per_hash.append(i)
             for i in unique_file_per_hash:
-                del (self.dict_by_hash[i])
+                del (dict_by_hash[i])
 
-            for key, obj_list in self.dict_by_hash.items():
+            for key, obj_list in dict_by_hash.items():
                 for obj in obj_list:
                     self.log['duplicates_by_hash']['Files'].append(str(obj))
 
             self.log['duplicates_by_hash']['Qtd'] = len(self.log['duplicates_by_hash']['Files'])
+            return dict_by_hash
         except Exception as e:
             self.log['errors']['Files'].append(str(e))
             print(e)
 
-    def send_duplicate_to_trash(self):
+    def send_duplicate_to_trash(self, dict_by_hash):
         try:
             duplicates = []
-            for key, obj_list in self.dict_by_hash.items():
+            for key, obj_list in dict_by_hash.items():
                 if self._deletion_mode == 1:
                     original = obj_list[0]
                     for obj in obj_list:
