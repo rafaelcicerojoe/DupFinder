@@ -1,7 +1,7 @@
 import json
 import hashlib
-from os import walk, stat, remove, rmdir
-from os.path import join, getsize
+from os import walk, stat, remove, rmdir, listdir
+from os.path import join, getsize, isdir
 from send2trash import send2trash
 from datetime import datetime
 from controls.file import File
@@ -198,27 +198,31 @@ class DuplicateFinder:
             self.log['errors']['Files'].append(str(e))
             print(e)
 
-    def remove_empty_folder(self):
+    def remove_empty_folder(self, path):
         try:
-            empty_folders = []
-            for path, dirs, files in walk(self._directory):
-                if not dirs and not files:
-                    empty_folders.append(path)
-                    self.log['deleted_empty_folders']['Files'].append(path)
+            if not isdir(path):
+                return
 
-            for i in empty_folders:
+            files = listdir(path)
+            if len(files):
+                for f in files:
+                    full_path = join(path, f)
+                    if isdir(full_path):
+                        self.remove_empty_folder(full_path)
+
+            files = listdir(path)
+            if len(files) == 0:
                 try:
                     if self._to_trash == 0:
-                        rmdir(i)
+                        rmdir(path)
                     else:
-                        send2trash(i)
+                        send2trash(path)
+                    self.log['deleted_empty_folders']['Files'].append(path)
                 except Exception as e:
-                    empty_folders.remove(i)
-                    self.log['deleted_empty_folders']['Files'].remove(i)
+                    self.log['deleted_empty_folders']['Files'].remove(path)
                     self.log['errors']['Files'].append(str(e))
-                    continue
 
-            self.log['deleted_empty_folders']['Qtd'] = len(empty_folders)
+            self.log['deleted_empty_folders']['Qtd'] = len(self.log['deleted_empty_folders']['Files'])
         except Exception as e:
             self.log['errors']['Files'].append(str(e))
             print(e)
