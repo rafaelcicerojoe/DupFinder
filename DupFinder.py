@@ -6,7 +6,7 @@ from controls.duplicate_finder import DuplicateFinder
 
 class DupFinder(SMWinservice):
     _svc_name_ = "DupFinder"
-    _svc_display_name_ = "DupFinderPython Service Example"
+    _svc_display_name_ = "Dup Finder"
     _svc_description_ = "O serviço DupFinder realiza o escaneamento de diretórios e subdiretórios em busca de " \
                         "arquivos duplicados por tamanho e hash, assim como pastas vazias afim de realizar a exclusão" \
                         " segura. "
@@ -28,7 +28,7 @@ class DupFinder(SMWinservice):
         dup_finder = DuplicateFinder(_config['directory'], _config['log_directory'], _config['hash_algorithm'],
                                      _config['to_trash'], _config['deletion_mode'])
 
-        while self.isrunning:
+        while self.is_running:
             dict_by_size = dup_finder.find_duplicate_by_size()
             dict_by_hash = dup_finder.find_duplicate_by_full_hash(dict_by_size)
             dup_finder.send_duplicate_to_trash(dict_by_hash)

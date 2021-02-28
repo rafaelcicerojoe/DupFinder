@@ -38,11 +38,11 @@ class DuplicateFinder:
     @log_directory.setter
     def log_directory(self, value):
         self._log_directory = value
-    
+
     @property
     def hash_algorithm(self):
         return self._hash_algorithm
-    
+
     @hash_algorithm.setter
     def hash_algorithm(self, value):
         self._hash_algorithm = value
