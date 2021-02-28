@@ -202,7 +202,6 @@ class DuplicateFinder:
                 if not dirs and not files:
                     empty_folders.append(path)
                     self.log['deleted_empty_folders']['Files'].append(path)
-            self.log['deleted_empty_folders']['Qtd'] = len(empty_folders)
 
             for i in empty_folders:
                 try:
@@ -211,22 +210,35 @@ class DuplicateFinder:
                     else:
                         send2trash(i)
                 except Exception as e:
-                    self.log['errors']['Files'].append(e)
+                    empty_folders.remove(i)
+                    self.log['deleted_empty_folders']['Files'].remove(i)
                     self.log['errors']['Files'].append(str(e))
                     continue
+
+            self.log['deleted_empty_folders']['Qtd'] = len(empty_folders)
         except Exception as e:
             self.log['errors']['Files'].append(str(e))
             print(e)
 
     def export_log(self):
+        import datetime
+        ts = datetime.datetime.now()
         try:
             self.log['errors']['Qtd'] = len(self.log['errors']['Files'])
-            out_file = open(self._log_directory + "log.json", "w")
+            out_file = open(self._log_directory + str(ts)+"_log.json", "w")
             json.dump(self.log, out_file, indent=6)
             out_file.close()
 
             for i in self.log:
                 print("{}: {}".format(i, self.log[i]['Qtd']))
+
+            self.log = {'duplicates_by_size': {"Qtd": 0, 'Files': []},
+                        'duplicates_by_hash': {"Qtd": 0, 'Files': []},
+                        'deleted_files': {"Qtd": 0, 'Files': []},
+                        'deleted_empty_folders': {"Qtd": 0, 'Files': []},
+                        'errors': {"Qtd": 0, 'Files': []}
+                        }
+
         except Exception as e:
             self.log['errors']['Files'].append(str(e))
             print(e)
