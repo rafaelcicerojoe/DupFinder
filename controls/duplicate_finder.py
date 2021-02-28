@@ -229,13 +229,18 @@ class DuplicateFinder:
 
     def export_log(self):
         import datetime
-        ts = datetime.datetime.now()
+        ts = str(datetime.datetime.now())
+        ts = ts.replace(":", "-")
+        ts = ts.replace(" ", "_")
+        ts = ts.replace(".", "_")
+
         try:
             self.log['errors']['Qtd'] = len(self.log['errors']['Files'])
-            out_file = open(self._log_directory + str(ts)+"_log.json", "w")
+            out_file = open(self._log_directory + ts + ".json", "w")
             json.dump(self.log, out_file, indent=6)
             out_file.close()
 
+            print("\n{}".format(self._log_directory + ts + ".json"))
             for i in self.log:
                 print("{}: {}".format(i, self.log[i]['Qtd']))
 
