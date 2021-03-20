@@ -56,11 +56,7 @@ class File:
         self._hash_id = value
 
     def __str__(self):
-        return "NAME:{} PATH:{} FULL_PATH:{} SIZE:{} MODIFIED:{} HASH:{}".format(self._name, self._path,
-                                                                                 self._full_path, self._size,
-                                                                                 self._time, self._hash_id)
+        return "{}".format(self._name)
 
     def __repr__(self):
-        return "NAME:{} PATH:{} FULL_PATH:{} SIZE:{} MODIFIED:{} HASH:{}".format(self._name, self._path,
-                                                                                 self._full_path, self._size,
-                                                                                 self._time, self._hash_id)
+        return "{}".format(self._name)

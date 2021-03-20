@@ -9,12 +9,7 @@ from controls.file import File
 
 class DuplicateFinder:
     errors = []
-    log = {'duplicates_by_size': {"Qtd": 0, 'Files': []},
-           'duplicates_by_hash': {"Qtd": 0, 'Files': []},
-           'deleted_files': {"Qtd": 0, 'Files': []},
-           'deleted_empty_folders': {"Qtd": 0, 'Files': []},
-           'errors': {"Qtd": 0, 'Files': []}
-           }
+    log = []
 
     def __init__(self, directory, log_directory, hash_algorithm, to_trash, deletion_mode):
         self._directory = directory
@@ -89,7 +84,6 @@ class DuplicateFinder:
                         else:
                             dict_by_size[file_size].append(file_obj)
                     except Exception as e:
-                        self.log['errors']['Files'].append(str(e))
                         continue
 
             unique_file_per_size = []
@@ -99,14 +93,8 @@ class DuplicateFinder:
             for i in unique_file_per_size:
                 del (dict_by_size[i])
 
-            for key, obj_list in dict_by_size.items():
-                for obj in obj_list:
-                    self.log['duplicates_by_size']['Files'].append(str(obj))
-
-            self.log['duplicates_by_size']['Qtd'] = len(self.log['duplicates_by_size']['Files'])
             return dict_by_size
         except Exception as e:
-            self.log['errors']['Files'].append(str(e))
             print(e)
 
     def find_duplicate_by_full_hash(self, dict_by_size):
@@ -128,14 +116,9 @@ class DuplicateFinder:
             for i in unique_file_per_hash:
                 del (dict_by_hash[i])
 
-            for key, obj_list in dict_by_hash.items():
-                for obj in obj_list:
-                    self.log['duplicates_by_hash']['Files'].append(str(obj))
 
-            self.log['duplicates_by_hash']['Qtd'] = len(self.log['duplicates_by_hash']['Files'])
             return dict_by_hash
         except Exception as e:
-            self.log['errors']['Files'].append(str(e))
             print(e)
 
     def send_duplicate_to_trash(self, dict_by_hash):
@@ -150,7 +133,7 @@ class DuplicateFinder:
                     obj_list.remove(original)
                     for obj in obj_list:
                         duplicates.append(obj.full_path)
-                        self.log['deleted_files']['Files'].append(str(obj))
+                        self.log.append('||'+str(obj)+'||')
                 elif self._deletion_mode == 2:
                     original = obj_list[0]
                     for obj in obj_list:
@@ -159,7 +142,7 @@ class DuplicateFinder:
                     obj_list.remove(original)
                     for obj in obj_list:
                         duplicates.append(obj.full_path)
-                        self.log['deleted_files']['Files'].append(str(obj))
+                        self.log.append('||'+str(obj)+'||')
                 elif self._deletion_mode == 3:
                     longest_path_list = []
                     longest_path = obj_list[0].path
@@ -180,9 +163,7 @@ class DuplicateFinder:
                         obj_list.remove(original)
                     for obj in obj_list:
                         duplicates.append(obj.full_path)
-                        self.log['deleted_files']['Files'].append(str(obj))
-
-            self.log['deleted_files']['Qtd'] = len(duplicates)
+                        self.log.append('||'+str(obj)+'||')
 
             for i in duplicates:
                 try:
@@ -192,10 +173,10 @@ class DuplicateFinder:
                         send2trash(i)
 
                 except Exception as e:
-                    self.log['errors']['Files'].append(str(e))
+                   
                     continue
         except Exception as e:
-            self.log['errors']['Files'].append(str(e))
+
             print(e)
 
     def remove_empty_folder(self, path):
@@ -217,14 +198,12 @@ class DuplicateFinder:
                         rmdir(path)
                     else:
                         send2trash(path)
-                    self.log['deleted_empty_folders']['Files'].append(path)
+                    
                 except Exception as e:
-                    self.log['deleted_empty_folders']['Files'].remove(path)
-                    self.log['errors']['Files'].append(str(e))
-
-            self.log['deleted_empty_folders']['Qtd'] = len(self.log['deleted_empty_folders']['Files'])
+                    print(e)
+           
         except Exception as e:
-            self.log['errors']['Files'].append(str(e))
+            
             print(e)
 
     def export_log(self):
@@ -234,22 +213,9 @@ class DuplicateFinder:
         ts = ts.replace(".", "_")
 
         try:
-            self.log['errors']['Qtd'] = len(self.log['errors']['Files'])
             out_file = open(self._log_directory + ts + ".json", "w")
             json.dump(self.log, out_file, indent=6)
             out_file.close()
 
-            print("\n{}".format(self._log_directory + ts + ".json"))
-            for i in self.log:
-                print("{}: {}".format(i, self.log[i]['Qtd']))
-
-            self.log = {'duplicates_by_size': {"Qtd": 0, 'Files': []},
-                        'duplicates_by_hash': {"Qtd": 0, 'Files': []},
-                        'deleted_files': {"Qtd": 0, 'Files': []},
-                        'deleted_empty_folders': {"Qtd": 0, 'Files': []},
-                        'errors': {"Qtd": 0, 'Files': []}
-                        }
-
         except Exception as e:
-            self.log['errors']['Files'].append(str(e))
             print(e)

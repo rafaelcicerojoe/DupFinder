@@ -1,0 +1,7 @@
+{
+    "directory": "c:/users/rafae/desktop/testDuplicates",
+    "log_directory": "C:/Users/rafae/Desktop/RmSvc_SO/logs/",
+    "hash_algorithm": "sha512",
+    "to_trash": 0,
+    "deletion_mode" : 1
+}
